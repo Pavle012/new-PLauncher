@@ -49,7 +49,30 @@ jobs:
       run: |
         $pysidePath = python -c "import PySide6; import os; print(os.path.dirname(PySide6.__file__))"
         Write-Host "PySide6 path: $pysidePath"
-        Copy-Item "$pysidePath\icu*.dll" -Destination "dist\PLauncher-Windows\_internal\PySide6\" -Force -ErrorAction SilentlyContinue
+        
+        # Search for ICU DLLs in multiple possible locations
+        $icuLocations = @(
+          "$pysidePath",
+          "$pysidePath\Qt\bin",
+          "$pysidePath\Qt6\bin"
+        )
+        
+        $icuFound = $false
+        foreach ($location in $icuLocations) {
+          if (Test-Path "$location\icu*.dll") {
+            Write-Host "Found ICU DLLs in: $location"
+            Copy-Item "$location\icu*.dll" -Destination "dist\PLauncher-Windows\_internal\PySide6\" -Force
+            $icuFound = $true
+            break
+          }
+        }
+        
+        if (-not $icuFound) {
+          Write-Error "ICU DLLs not found in any expected location!"
+          exit 1
+        }
+        
+        Write-Host "ICU DLLs copied successfully:"
         Get-ChildItem "dist\PLauncher-Windows\_internal\PySide6\icu*.dll"
 
     - name: Package Windows Build
