@@ -155,7 +155,10 @@ def handle_finished(exit_code, exit_status):
     if exit_status == QProcess.ExitStatus.CrashExit:
         status.setText("Crashed")
     else:
-        status.setText(f"Finished (Exit Code: {exit_code})")
+        if exit_code == 0:
+            status.setText("Finished")
+        else:
+            status.setText(f"Finished (Exit Code: {exit_code})")
 
 def handle_error(error):
     if error == QProcess.ProcessError.FailedToStart:
@@ -320,12 +323,12 @@ def refresh_instances():
 app = QApplication(sys.argv)
 
 window = QWidget()
-window.setWindowTitle("PLauncher")
+window.setWindowTitle("Skakavi krompir launcher")
 window.resize(700, 500)
 
 layout = QVBoxLayout(window)
 
-title = QLabel("PLauncher")
+title = QLabel("Skakavi krompir launcher")
 title.setStyleSheet("font-size: 24px; font-weight: bold; margin-bottom: 10px;")
 layout.addWidget(title)
 
@@ -348,6 +351,10 @@ button_layout = QHBoxLayout()
 add_inst_btn = QPushButton("Add")
 add_inst_btn.clicked.connect(add_new_instance)
 
+# upcoming feature
+# rename_inst_btn = QPushButton("Rename")
+# rename_inst_btn.clicked.connect(rename_selected_instance)
+
 remove_inst_btn = QPushButton("Remove")
 remove_inst_btn.clicked.connect(remove_selected_instance)
 
@@ -364,6 +371,7 @@ kill_btn = QPushButton("Kill")
 kill_btn.clicked.connect(kill_instance)
 
 button_layout.addWidget(add_inst_btn)
+# button_layout.addWidget(rename_inst_btn) # upcoming feature
 button_layout.addWidget(remove_inst_btn)
 button_layout.addWidget(download_btn)
 button_layout.addStretch()
