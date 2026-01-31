@@ -37,7 +37,7 @@
    <item>
     <widget class="QListWidget" name="instanceList">
      <property name="viewMode">
-      <enum>QListWidget::IconMode</enum>
+      <enum>QListView::IconMode</enum>
      </property>
      <property name="iconSize">
       <size>
@@ -46,10 +46,10 @@
       </size>
      </property>
      <property name="movement">
-      <enum>QListWidget::Static</enum>
+      <enum>QListView::Static</enum>
      </property>
      <property name="resizeMode">
-      <enum>QListWidget::Adjust</enum>
+      <enum>QListView::Adjust</enum>
      </property>
      <property name="spacing">
       <number>10</number>

@@ -43,36 +43,31 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install PySide6 requests pyinstaller
+        pip install PySide6 requests nuitka ordered-set zstandard
 
-    - name: Install Nuitka (Windows only)
-      if: matrix.os == 'windows-latest'
-      run: pip install nuitka ordered-set zstandard
-
-    - name: Build with PyInstaller (Linux)
+    - name: Install patchelf (Linux)
       if: matrix.os == 'ubuntu-latest'
-      run: pyinstaller --onefile --windowed --name ${{ matrix.binary_name }} main.py
+      run: sudo apt-get install -y patchelf
+
+    - name: Build with Nuitka (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        python -m nuitka --standalone --onefile --enable-plugin=pyside6 --assume-yes-for-downloads --output-filename=${{ matrix.binary_name }} --include-data-file=mainwindow.ui=mainwindow.ui main.py
+        mkdir dist
+        mv ${{ matrix.binary_name }} dist/${{ matrix.binary_name }}
 
     - name: Build with Nuitka (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        python -m nuitka --standalone --onefile --enable-plugin=pyside6 --windows-disable-console --assume-yes-for-downloads --output-filename=PLauncher-Windows.exe main.py
+        python -m nuitka --standalone --onefile --enable-plugin=pyside6 --windows-disable-console --assume-yes-for-downloads --output-filename=${{ matrix.binary_name }} --include-data-file=mainwindow.ui=mainwindow.ui main.py
         mkdir dist
-        move PLauncher-Windows.exe dist/PLauncher-Windows.exe
+        move ${{ matrix.binary_name }} dist/${{ matrix.binary_name }}
 
-    - name: Upload Artifact (Linux)
-      if: matrix.os == 'ubuntu-latest'
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
         path: dist/${{ matrix.binary_name }}
-
-    - name: Upload Artifact (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.artifact_name }}
-        path: dist/PLauncher-Windows.exe
 
   release:
     needs: build

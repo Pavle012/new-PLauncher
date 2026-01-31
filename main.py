@@ -3,6 +3,7 @@ import os
 import signal
 import json
 import requests
+from PySide6.QtWidgets import QStyleFactory
 from PySide6.QtCore import QProcess, Qt, QSize, QThread, Signal, QIODevice
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout,
@@ -11,7 +12,7 @@ from PySide6.QtWidgets import (
     QAbstractItemView, QProgressDialog, QComboBox, QDialog,
     QPlainTextEdit
 )
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QIcon, QPixmap, QPalette, QColor
 
 INSTANCES_FILE = "instances.json"
 RELEASES_URL = "https://api.github.com/repos/Pavle012/Skakavi-krompir/releases"
@@ -326,9 +327,14 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile
 
 # Load the UI file
-ui_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mainwindow.ui")
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
+ui_file_path = os.path.join(base_path, "mainwindow.ui")
 ui_file = QFile(ui_file_path)
-if not ui_file.open(QIODevice.ReadOnly):
+if not ui_file.open(QIODevice.OpenModeFlag.ReadOnly):
     print(f"Cannot open {ui_file_path}: {ui_file.errorString()}")
     sys.exit(-1)
 
