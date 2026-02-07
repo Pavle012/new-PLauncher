@@ -13,10 +13,14 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout,
     QLabel, QPushButton, QHBoxLayout,
     QFileDialog, QMessageBox, QListWidget, QListWidgetItem,
+    QApplication, QWidget, QVBoxLayout,
+    QLabel, QPushButton, QHBoxLayout,
+    QFileDialog, QMessageBox, QListWidget, QListWidgetItem,
     QAbstractItemView, QProgressDialog, QComboBox, QDialog,
     QPlainTextEdit, QTabWidget, QCheckBox, QTextBrowser
 )
-from PySide6.QtGui import QIcon, QPixmap, QPalette, QColor
+from PySide6.QtGui import QIcon, QPixmap, QPalette, QColor, QDesktopServices
+from PySide6.QtCore import QUrl
 
 INSTANCES_FILE = "instances.json"
 RELEASES_URL = "https://api.github.com/repos/Pavle012/Skakavi-krompir/releases"
@@ -123,51 +127,54 @@ class LogViewer(QDialog):
     def append_log(self, text):
         self.text_edit.appendPlainText(text)
 
+def load_ui(name, parent=None):
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    ui_file_path = os.path.join(base_path, name)
+    ui_file = QFile(ui_file_path)
+    if not ui_file.open(QIODevice.OpenModeFlag.ReadOnly):
+        print(f"Cannot open {ui_file_path}: {ui_file.errorString()}")
+        return None
+        
+    loader = QUiLoader()
+    widget = loader.load(ui_file, parent)
+    ui_file.close()
+    return widget
+
 class RepoBrowserDialog(QDialog):
     def __init__(self, target_dir, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Mod Repository Browser")
-        self.resize(800, 600)
         self.target_dir = target_dir
         self.projects = []
         self.current_project = None
         self.versions = []
         
+        # Load UI
+        self.ui = load_ui("repo_browser.ui", self)
+        
+        # Setup layout to contain the loaded UI
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.ui)
+        
         self.init_ui()
         self.fetch_projects()
 
     def init_ui(self):
-        layout = QHBoxLayout(self)
+        # Find widgets
+        self.project_list = self.ui.findChild(QListWidget, "projectList")
+        self.details_browser = self.ui.findChild(QTextBrowser, "detailsBrowser")
+        self.version_combo = self.ui.findChild(QComboBox, "versionCombo")
+        install_btn = self.ui.findChild(QPushButton, "installBtn")
+        close_btn = self.ui.findChild(QPushButton, "closeBtn")
         
-        # Left: Project List
-        left_layout = QVBoxLayout()
-        left_layout.addWidget(QLabel("Available Projects:"))
-        self.project_list = QListWidget()
+        # Connect signals
         self.project_list.currentItemChanged.connect(self.on_project_selected)
-        left_layout.addWidget(self.project_list)
-        layout.addLayout(left_layout, 1)
-        
-        # Right: Details & Versions
-        right_layout = QVBoxLayout()
-        
-        self.details_browser = QTextBrowser()
-        self.details_browser.setOpenExternalLinks(True)
-        right_layout.addWidget(QLabel("Project Details:"))
-        right_layout.addWidget(self.details_browser)
-        
-        right_layout.addWidget(QLabel("Select Version:"))
-        self.version_combo = QComboBox()
-        right_layout.addWidget(self.version_combo)
-        
-        install_btn = QPushButton("Install Selected Version")
         install_btn.clicked.connect(self.install_version)
-        right_layout.addWidget(install_btn)
-        
-        close_btn = QPushButton("Close")
         close_btn.clicked.connect(self.reject)
-        right_layout.addWidget(close_btn)
-        
-        layout.addLayout(right_layout, 2)
 
     def fetch_projects(self):
         try:
@@ -249,8 +256,6 @@ class RepoBrowserDialog(QDialog):
 class ModManagerDialog(QDialog):
     def __init__(self, instance_path, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Mod Manager")
-        self.resize(600, 450)
         self.instance_path = instance_path
         self.instance_dir = os.path.dirname(instance_path) if instance_path else None
         
@@ -260,30 +265,29 @@ class ModManagerDialog(QDialog):
         else:
             self.global_mod_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "SkakaviKrompir", "mods")
 
+        # Load UI
+        self.ui = load_ui("mod_manager.ui", self)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.ui)
+        
         self.init_ui()
 
     def init_ui(self):
-        layout = QVBoxLayout(self)
-        self.tabs = QTabWidget()
-        layout.addWidget(self.tabs)
+        self.tabs = self.ui.findChild(QTabWidget, "tabWidget")
+        close_btn = self.ui.findChild(QPushButton, "closeBtn")
+        close_btn.clicked.connect(self.accept)
 
         # Instance Mods Tab
         if self.instance_dir:
             instance_mods_path = os.path.join(self.instance_dir, "mods")
-            self.instance_list = self.create_mod_tab(instance_mods_path, "Instance Mods")
-        else:
-            self.instance_list = None
+            self.create_mod_tab(instance_mods_path, "Instance Mods")
 
         # Global Mods Tab
-        self.global_list = self.create_mod_tab(self.global_mod_dir, "Global Mods")
-
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self.accept)
-        layout.addWidget(close_btn)
+        self.create_mod_tab(self.global_mod_dir, "Global Mods")
 
     def create_mod_tab(self, directory, title):
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
+        tab_widget = load_ui("mod_tab.ui")
         
         if not os.path.exists(directory):
             try:
@@ -291,35 +295,29 @@ class ModManagerDialog(QDialog):
             except OSError:
                 pass
 
-        list_widget = QListWidget()
-        layout.addWidget(list_widget)
-        
-        btn_layout = QHBoxLayout()
-        add_btn = QPushButton("Add Mod")
-        remove_btn = QPushButton("Remove Mod")
-        repo_btn = QPushButton("Browse Repo")
-        refresh_btn = QPushButton("Refresh")
+        list_widget = tab_widget.findChild(QListWidget, "modList")
+        add_btn = tab_widget.findChild(QPushButton, "addBtn")
+        remove_btn = tab_widget.findChild(QPushButton, "removeBtn")
+        open_dir_btn = tab_widget.findChild(QPushButton, "openDirBtn")
+        repo_btn = tab_widget.findChild(QPushButton, "repoBtn")
+        refresh_btn = tab_widget.findChild(QPushButton, "refreshBtn")
         
         add_btn.clicked.connect(lambda: self.add_mod(directory, list_widget))
         remove_btn.clicked.connect(lambda: self.remove_mod(directory, list_widget))
+        open_dir_btn.clicked.connect(lambda: self.open_directory(directory))
         repo_btn.clicked.connect(lambda: self.browse_repo(directory, list_widget))
         refresh_btn.clicked.connect(lambda: self.load_mods(directory, list_widget))
         
-        btn_layout.addWidget(add_btn)
-        btn_layout.addWidget(remove_btn)
-        btn_layout.addWidget(repo_btn)
-        btn_layout.addWidget(refresh_btn)
-        layout.addLayout(btn_layout)
-        
-        self.tabs.addTab(tab, title)
+        self.tabs.addTab(tab_widget, title)
         
         # Load mods initially
         self.load_mods(directory, list_widget)
         
         # Connect item changed signal for toggling
         list_widget.itemChanged.connect(lambda item: self.toggle_mod(item, directory))
-        
-        return list_widget
+
+    def open_directory(self, path):
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def load_mods(self, directory, list_widget):
         list_widget.blockSignals(True) # Prevent toggling while loading
