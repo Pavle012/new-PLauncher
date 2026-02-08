@@ -64,6 +64,28 @@
         </widget>
        </item>
        <item>
+        <widget class="QLabel" name="instanceIcon">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>128</width>
+           <height>128</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>128</width>
+           <height>128</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="instanceName">
          <property name="text">
           <string>No selected instance</string>

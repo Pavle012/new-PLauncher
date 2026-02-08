@@ -456,6 +456,24 @@ def read_stderr():
         data = process.readAllStandardError().data().decode("utf-8", errors="replace")
         log_viewer.append_log(data)
 
+def update_selected_instance_details(current=None, previous=None):
+    current_item = instance_list.currentItem()
+    if current_item:
+        instance_index = instance_list.row(current_item)
+        if instance_index < len(instance_manager.instances):
+            instance = instance_manager.instances[instance_index]
+            instance_name_label.setText(instance["name"])
+            
+            # Set icon
+            pixmap = QIcon("icon.png").pixmap(128, 128)
+            if pixmap.isNull():
+                 pixmap = QIcon.fromTheme("applications-games").pixmap(128, 128)
+            instance_icon_label.setPixmap(pixmap)
+            return
+
+    instance_name_label.setText("No selected instance")
+    instance_icon_label.clear()
+
 def launch_instance():
     global process
     current_item = instance_list.currentItem()
@@ -648,8 +666,11 @@ log_btn = window.findChild(QPushButton, "logsBtn")
 launch_btn = window.findChild(QPushButton, "launchBtn")
 kill_btn = window.findChild(QPushButton, "killBtn")
 mods_btn = window.findChild(QPushButton, "modsBtn")
+instance_name_label = window.findChild(QLabel, "instanceName")
+instance_icon_label = window.findChild(QLabel, "instanceIcon")
 
 # Connect signals
+instance_list.currentItemChanged.connect(update_selected_instance_details)
 instance_list.itemDoubleClicked.connect(lambda: launch_instance())
 add_inst_btn.clicked.connect(add_new_instance)
 remove_inst_btn.clicked.connect(remove_selected_instance)
@@ -661,6 +682,7 @@ mods_btn.clicked.connect(open_mod_manager)
 
 # Initialize data
 refresh_instances()
+update_selected_instance_details()
 
 # Initialize log viewer
 log_viewer = LogViewer(window)
